@@ -281,14 +281,14 @@ if __name__ == '__main__':
                                 rel_std, minv, maxv, amp)
 
     functions = [
-        # numpy_swsd,
-        # didatic_swsd,
-        # better_swsd,
-        # optimized_swsd,
+        numpy_swsd,
+        didatic_swsd,
+        better_swsd,
+        optimized_swsd,
         numba_numpy_swsd,
-        # numba_didatic_swsd,
-        # numba_better_swsd,
-        # numba_optimized_swsd,
+        numba_didatic_swsd,
+        numba_better_swsd,
+        numba_optimized_swsd,
         numba_optimized_parallel_swsd,
     ]
 
@@ -296,6 +296,6 @@ if __name__ == '__main__':
     runtime_results(functions,
                     # Ns=[300],
                     # wss=[3, 5, 7, 9],
-                    Ns=[100, 200, 300, 400, 800, 1600],
+                    Ns=[100, 200, 300, 400,]    # 800, 1600],
                     wss=[2*i+1 for i in range(30)],
                     times=3)
