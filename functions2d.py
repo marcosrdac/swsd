@@ -38,16 +38,16 @@ def sw_func(img, wr, func):
 # creating 2D sliding window functions
 
 
-def numpy_swsd(img, wr): return sw_func(img, wr=1, func=np.std)
+def numpy_mwsd(img, wr): return sw_func(img, wr=1, func=np.std)
 
 
-def didatic_swsd(img, wr): return sw_func(img, wr=1, func=didatic_stdev)
+def didatic_mwsd(img, wr): return sw_func(img, wr=1, func=didatic_stdev)
 
 
-def better_swsd(img, wr): return sw_func(img, wr=1, func=better_stdev)
+def better_mwsd(img, wr): return sw_func(img, wr=1, func=better_stdev)
 
 
-def optimized_swsd(img, wr=1):
+def optimized_mwsd(img, wr=1):
     stdevimg = np.empty(img.shape)  # change to empty
     img = np.pad(img, wr)
 
@@ -66,7 +66,7 @@ def optimized_swsd(img, wr=1):
         oldsqvalssum = (subimg[:, 0]**2).sum()  # used in next iteration
         sqvalssum = oldsqvalssum + (subimg[:, 1:]**2).sum()
 
-        #stdev = np.sqrt( (n2*sqvalssum-totalsum**2) / n2**2)
+        # stdev = np.sqrt( (n2*sqvalssum-totalsum**2) / n2**2)
         stdevimg[y, x] = np.sqrt(sqvalssum/n2-(totalsum/n2)**2)
 
         # next iterations
@@ -77,7 +77,7 @@ def optimized_swsd(img, wr=1):
             totalsum += newvalssum - oldvalssum
             newsqvalssum = (subimg[:, ws-1]**2).sum()
             sqvalssum += newsqvalssum - oldsqvalssum
-            #stdev = np.sqrt( (n2*sqvalssum-totalsum**2) / n2**2)
+            # stdev = np.sqrt( (n2*sqvalssum-totalsum**2) / n2**2)
             stdevimg[y, x] = np.sqrt(sqvalssum/n2-(totalsum/n2)**2)
 
             oldvalssum = subimg[:, 0].sum()        # used in next iteration
@@ -90,13 +90,13 @@ def optimized_swsd(img, wr=1):
 
 # defining pure standard deviation functions
 
-@jit(parallel=True, nopython=True, boundscheck=False,)
+@jit(nopython=True, boundscheck=False,)
 def numba_didatic_stdev(img):
     stdev = np.sqrt(np.sum((img-np.mean(img))**2))
     return(stdev)
 
 
-@jit(parallel=True, nopython=True, boundscheck=False,)
+@jit(nopython=True, boundscheck=False,)
 def numba_better_stdev(img):
     n2 = img.size
     totalsum = img.sum()
@@ -119,9 +119,9 @@ def pad(img, wr, val):
 
 
 @jit(parallel=True, nopython=True, boundscheck=False,)
-def numba_numpy_swsd(img, wr):
+def numba_numpy_mwsd(img, wr):
     ws = 1+2*wr
-    funcimg = np.zeros(img.shape)  # change to empty
+    funcimg = np.empty(img.shape)  # change to empty
     img_pad = pad(img, wr, 0)
     for y in prange(0, funcimg.shape[0]):
         for x in prange(0, funcimg.shape[1]):
@@ -132,9 +132,9 @@ def numba_numpy_swsd(img, wr):
 
 
 @jit(parallel=True, nopython=True, boundscheck=False,)
-def numba_didatic_swsd(img, wr):
+def numba_didatic_mwsd(img, wr):
     ws = 1+2*wr
-    funcimg = np.zeros(img.shape)  # change to empty
+    funcimg = np.empty(img.shape)  # change to empty
     img_pad = pad(img, wr, 0)
     for y in prange(0, funcimg.shape[0]):
         for x in prange(0, funcimg.shape[1]):
@@ -145,12 +145,24 @@ def numba_didatic_swsd(img, wr):
 
 
 @jit(parallel=True, nopython=True, boundscheck=False,)
-def numba_better_swsd(img, wr):
+def numba_didatic_mwsd_nopad(img, wr):
     ws = 1+2*wr
-    funcimg = np.zeros(img.shape)  # change to empty
+    funcimg = np.empty((img.shape[0]-2*wr, img.shape[1]-2*wr))
+    for y in prange(0, funcimg.shape[0]):
+        for x in prange(0, funcimg.shape[1]):
+            subimg = img[y:y+ws,
+                         x:x+ws]
+            funcimg[y, x] = numba_didatic_stdev(subimg)
+    return(funcimg)
+
+
+@jit(parallel=True, nopython=True, boundscheck=False,)
+def numba_better_mwsd(img, wr):
+    ws = 1+2*wr
+    funcimg = np.empty(img.shape)  # change to empty
     img_pad = pad(img, wr, 0)
-    for y in range(0, funcimg.shape[0]):
-        for x in range(0, funcimg.shape[1]):
+    for y in prange(0, funcimg.shape[0]):
+        for x in prange(0, funcimg.shape[1]):
             subimg = img_pad[y:y+ws,
                              x:x+ws]
             funcimg[y, x] = numba_better_stdev(subimg)
@@ -158,7 +170,7 @@ def numba_better_swsd(img, wr):
 
 
 @jit(parallel=True, nopython=True, boundscheck=False,)
-def numba_optimized_swsd(img, wr=1):
+def numba_optimized_mwsd(img, wr=1):
     stdevimg = np.empty(img.shape)  # change to empty
     img_pad = pad(img, wr, 0)
 
@@ -195,7 +207,7 @@ def numba_optimized_swsd(img, wr=1):
 
 
 @jit(parallel=True, nopython=True, boundscheck=False,)
-def numba_optimized_parallel_swsd(img, wr=1):
+def numba_optimized_parallel_mwsd(img, wr=1):
     stdevimg = np.empty(img.shape)  # change to empty
     img_pad = pad(img, wr, 0)
 
@@ -235,8 +247,8 @@ if __name__ == '__main__':
     # gettings useeful functionalities
     from utils import numba_get_stats as get_stats
     from sys import argv
-    #import matplotlib.pyplot as plt
-    #import seaborn as sns
+    # import matplotlib.pyplot as plt
+    # import seaborn as sns
     # do not mess here
     img_comp = np.array([[1]])
 
@@ -281,21 +293,23 @@ if __name__ == '__main__':
                                 rel_std, minv, maxv, amp)
 
     functions = [
-        numpy_swsd,
-        didatic_swsd,
-        better_swsd,
-        optimized_swsd,
-        numba_numpy_swsd,
-        numba_didatic_swsd,
-        numba_better_swsd,
-        numba_optimized_swsd,
-        numba_optimized_parallel_swsd,
+        # numpy_mwsd,
+        # didatic_mwsd,
+        # better_mwsd,
+        # optimized_mwsd,
+        # numba_numpy_mwsd,
+        numba_didatic_mwsd,
+        numba_didatic_mwsd_nopad,
+        #numba_better_mwsd,
+        #numba_optimized_mwsd,
+        numba_optimized_parallel_mwsd,
     ]
 
     #lone_test(functions, N=100, wr=2, times=3)
     runtime_results(functions,
                     # Ns=[300],
                     # wss=[3, 5, 7, 9],
-                    Ns=[100, 200, 300, 400,]    # 800, 1600],
-                    wss=[2*i+1 for i in range(30)],
-                    times=3)
+                    Ns = [100, 200, 300, 400,], # 800, 1600],
+                    # Ns=[100, 200, 400, 800], #, 1600],
+                    wss = [2*i+1 for i in range(30)],
+                    times = 5)

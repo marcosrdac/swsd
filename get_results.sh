@@ -7,3 +7,5 @@ code=functions2d.py
 outfile=${code%.*}_results.csv
 
 $PYTHON $code > $outfile
+
+mpc play
